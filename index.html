@@ -4,807 +4,105 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>スポットマップ</title>
-
-  <!-- Leaflet (CDN) -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; }
-
-    .popup img { width: 240px; max-width: 100%; border-radius: 8px; display:block; margin: 6px 0; }
-    .popup .meta { font-size: 12px; color: #555; margin-top: 2px; }
+    .panel { position: absolute; top: 10px; left: 10px; z-index: 1000; background: #fff; padding: 10px 12px; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.25); font-size: 13px; max-height: 70vh; overflow: auto; }
+    .panel label { display: flex; align-items: center; margin: 4px 0; cursor: pointer; }
+    .panel .swatch { width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; border: 2px solid rgba(0,0,0,.3); }
+    .popup img { width: 220px; max-width: 100%; border-radius: 6px; display: block; margin: 6px 0; }
+    .popup .meta { font-size: 12px; color: #555; }
     .popup .desc { margin-top: 6px; white-space: pre-wrap; }
-
-    .legend {
-      background: white;
-      padding: 10px 12px;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-      font-size: 12px;
-      line-height: 1.3;
-      max-height: 45vh;
-      overflow: auto;
-    }
-    .legend .row { display: flex; align-items: center; margin: 4px 0; }
-    .legend .swatch { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 2px solid rgba(0,0,0,0.35); }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-
-  <script>
-    // ===== spots.json を埋め込み（CSV→JSON） =====
-    // ・link は CSV の「URL」カラムを使用
-    const spots = [
-  {
-    "id": "EV01005001",
-    "category": "アート・デザイン",
-    "name": "展示会場：［加藤雅貴］",
-    "spot": "中之島フェスティバルタワー １Fエントランス",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69356168,
-    "lng": 135.496272,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005002",
-    "category": "アート・デザイン",
-    "name": "展示会場：［わんぱく中年とのまる］［緒方ちか］［Han Chandra］［ツダハルト］",
-    "spot": "中之島フェスティバルタワー・ウエスト ３Fオフィスロビー",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69350914,
-    "lng": 135.4955009,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005003",
-    "category": "アート・デザイン",
-    "name": "展示会場：［atelier minori］［TANBAN by Shikhambri］［andart315］［HEMCO］",
-    "spot": "ダイビル本館 １Fエントランス",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69328559,
-    "lng": 135.4928468,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005004",
-    "category": "アート・デザイン",
-    "name": "展示会場：［mntttk］［icco Yoshimura］",
-    "spot": "中之島ダイビル ２F",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69336202,
-    "lng": 135.4935668,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005005",
-    "category": "アート・デザイン",
-    "name": "「この会場での展示＆スタンプ獲得は終了」",
-    "spot": "関電ビルディング ２Fオフィスロビー",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69273759,
-    "lng": 135.492448,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005007",
-    "category": "建築",
-    "name": "大阪中之島美術館",
-    "spot": "大阪中之島美術館",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69251176,
-    "lng": 135.4914003,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005008",
-    "category": "建築",
-    "name": "国立国際美術館",
-    "spot": "国立国際美術館",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69177669,
-    "lng": 135.4919828,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005009",
-    "category": "建築",
-    "name": "愛珠幼稚園",
-    "spot": "愛珠幼稚園",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69067761,
-    "lng": 135.5028646,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005010",
-    "category": "その他",
-    "name": "大江橋",
-    "spot": "大江橋",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69465904,
-    "lng": 135.501162,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005011",
-    "category": "その他",
-    "name": "淀屋橋",
-    "spot": "淀屋橋",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69297105,
-    "lng": 135.500986,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005012",
-    "category": "建築",
-    "name": "大阪市中央公会堂",
-    "spot": "大阪市中央公会堂",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.693565,
-    "lng": 135.504,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005013",
-    "category": "建築",
-    "name": "大阪府立中之島図書館",
-    "spot": "大阪府立中之島図書館",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.693625,
-    "lng": 135.5032,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005014",
-    "category": "建築",
-    "name": "旧緒方洪庵住宅（適塾）",
-    "spot": "旧緒方洪庵住宅（適塾）",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.6913995,
-    "lng": 135.5032714,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005015",
-    "category": "建築",
-    "name": "大阪倶楽部",
-    "spot": "大阪倶楽部",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69078473,
-    "lng": 135.4989265,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005016",
-    "category": "建築",
-    "name": "今橋ビルヂング",
-    "spot": "今橋ビルヂング［旧大阪市中央消防署今橋出張所］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69070595,
-    "lng": 135.4985367,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005017",
-    "category": "建築",
-    "name": "日本基督教団 大阪教会",
-    "spot": "日本基督教団大阪教会",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.68926515,
-    "lng": 135.4936155,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005018",
-    "category": "建築",
-    "name": "山内ビル",
-    "spot": "山内ビル",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69239131,
-    "lng": 135.4956625,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005019",
-    "category": "建築",
-    "name": "リバーサイドビルディング",
-    "spot": "リバーサイドビルディング",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69184413,
-    "lng": 135.4932584,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005020",
-    "category": "建築",
-    "name": "旧川崎貯蓄銀行 福島出張所",
-    "spot": "ミナミ株式会社［旧川崎貯蓄銀行 福島出張所］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69494596,
-    "lng": 135.4848628,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005021",
-    "category": "建築",
-    "name": "旧菅澤眼科病院",
-    "spot": "旧菅澤眼科病院",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.68831094,
-    "lng": 135.4900224,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005022",
-    "category": "建築",
-    "name": "江戸堀コダマビル",
-    "spot": "江戸堀コダマビル［旧児玉竹次郎邸］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.68974461,
-    "lng": 135.4953645,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005023",
-    "category": "建築",
-    "name": "金光教 玉水教会会堂",
-    "spot": "金光教 玉水教会会堂",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.68993743,
-    "lng": 135.495763,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005025",
-    "category": "建築",
-    "name": "日本銀行 大阪支店",
-    "spot": "日本銀行大阪支店",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69375708,
-    "lng": 135.5008571,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005026",
-    "category": "建築",
-    "name": "中央電気倶楽部",
-    "spot": "中央電気倶楽部",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69542155,
-    "lng": 135.4943508,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005027",
-    "category": "建築",
-    "name": "リーガロイヤルホテル大阪",
-    "spot": "リーガロイヤルホテル大阪",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69114834,
-    "lng": 135.4871679,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005028",
-    "category": "歴史",
-    "name": "蛸の松",
-    "spot": "蛸の松",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69407858,
-    "lng": 135.4908865,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005029",
-    "category": "歴史",
-    "name": "逆櫓の松跡",
-    "spot": "逆櫓の松跡",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69368613,
-    "lng": 135.4871756,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005030",
-    "category": "歴史",
-    "name": "福沢諭吉誕生地",
-    "spot": "福沢諭吉誕生地",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69341833,
-    "lng": 135.4887643,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005031",
-    "category": "歴史",
-    "name": "堂島米市場跡碑",
-    "spot": "堂島米市場跡碑",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69519893,
-    "lng": 135.4986873,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005032",
-    "category": "その他",
-    "name": "中之島BANKS",
-    "spot": "中之島BANKS",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.6905794,
-    "lng": 135.4863735,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005033",
-    "category": "アート・デザイン",
-    "name": "陽だまりに遊ぶ［藤木康成］",
-    "spot": "陽だまりに遊ぶ［藤木康成］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69327862,
-    "lng": 135.5006296,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005034",
-    "category": "アート・デザイン",
-    "name": "風標［斉藤均］",
-    "spot": "風標［斉藤均］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69328738,
-    "lng": 135.5000171,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005035",
-    "category": "アート・デザイン",
-    "name": "くもの椅子［石田眞利］",
-    "spot": "くもの椅子［石田眞利］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69332197,
-    "lng": 135.4997729,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005036",
-    "category": "アート・デザイン",
-    "name": "一対の座［増田正和］",
-    "spot": "一対の座［増田正和］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69330709,
-    "lng": 135.4994408,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005037",
-    "category": "アート・デザイン",
-    "name": "十魚架［天野裕夫］",
-    "spot": "十魚架［天野裕夫］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69331985,
-    "lng": 135.4991797,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005038",
-    "category": "アート・デザイン",
-    "name": "広場－鳩のいる風景［冨永敦也］",
-    "spot": "広場－鳩のいる風景［冨永敦也］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69331585,
-    "lng": 135.4989947,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005039",
-    "category": "アート・デザイン",
-    "name": "日溜（ひだまり）［河合隆三］",
-    "spot": "日溜（ひだまり）［河合隆三］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69328467,
-    "lng": 135.4985089,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005040",
-    "category": "アート・デザイン",
-    "name": "TWO RING－空間の軌跡－［堀義幸］",
-    "spot": "TWO RING－空間の軌跡－［堀義幸］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69321163,
-    "lng": 135.4981032,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005041",
-    "category": "アート・デザイン",
-    "name": "花の天女［北田吉正］",
-    "spot": "花の天女［北田吉正］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69313932,
-    "lng": 135.4975204,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005042",
-    "category": "アート・デザイン",
-    "name": "雲の詩［河原明］",
-    "spot": "雲の詩［河原明］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69298784,
-    "lng": 135.4965074,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005043",
-    "category": "アート・デザイン",
-    "name": "SHIP’S CAT(Muse)［ヤノベケンジ］",
-    "spot": "SHIP’S CAT(Muse)［ヤノベケンジ］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69285413,
-    "lng": 135.4913351,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005044",
-    "category": "アート・デザイン",
-    "name": "ジュビリーⅣ［リン・チャドウィック］",
-    "spot": "ジュビリーⅣ［リン・チャドウィック］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.692891,
-    "lng": 135.4906053,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005045",
-    "category": "アート・デザイン",
-    "name": "風景の指輪 Ring of Scenery［関根伸夫］",
-    "spot": "風景の指輪 Ring of Scenery［関根伸夫］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69330024,
-    "lng": 135.4935789,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005046",
-    "category": "アート・デザイン",
-    "name": "位相絵画〇 Phase Conception［関根伸夫］",
-    "spot": "位相絵画〇 Phase Conception［関根伸夫］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.6933474,
-    "lng": 135.4936928,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005047",
-    "category": "アート・デザイン",
-    "name": "羊［藤本美弘］",
-    "spot": "羊［藤本美弘］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69536617,
-    "lng": 135.4997444,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005048",
-    "category": "アート・デザイン",
-    "name": "漆アート「景」［渡邊希］",
-    "spot": "漆アート「景」［渡邊希］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69575457,
-    "lng": 135.499329,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005049",
-    "category": "アート・デザイン",
-    "name": "鷲と少女の像［大国貞蔵］",
-    "spot": "鷲と少女の像［大国貞蔵］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.6933612,
-    "lng": 135.4928043,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005050",
-    "category": "アート・デザイン",
-    "name": "牧神・音楽を楽しむの図",
-    "spot": "牧神・音楽を楽しむの図",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69323709,
-    "lng": 135.4969256,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005054",
-    "category": "アート・デザイン",
-    "name": "太陽の母子像［本郷新］",
-    "spot": "太陽の母子像［本郷新］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.6922654,
-    "lng": 135.4968743,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005055",
-    "category": "アート・デザイン",
-    "name": "そよかぜ［松岡阜］",
-    "spot": "そよかぜ［松岡阜］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69458519,
-    "lng": 135.4985626,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005056",
-    "category": "アート・デザイン",
-    "name": "ECHO［清水九兵衛］",
-    "spot": "ECHO［清水九兵衛］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69151365,
-    "lng": 135.4919837,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005057",
-    "category": "アート・デザイン",
-    "name": "緑の賛歌［本郷新］",
-    "spot": "緑の賛歌［本郷新］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69304683,
-    "lng": 135.5030729,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005058",
-    "category": "アート・デザイン",
-    "name": "バベルの結び目［ジャン＝ミシェル・オトニエル］",
-    "spot": "バベルの結び目［ジャン＝ミシェル・オトニエル］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69629565,
-    "lng": 135.4937777,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005059",
-    "category": "アート・デザイン",
-    "name": "Trans-Mio［名和晃平］",
-    "spot": "Trans-Mio［名和晃平］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.6955608,
-    "lng": 135.4939062,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005060",
-    "category": "アート・デザイン",
-    "name": "自由 (La Liberte)［アントワーヌ・ブールデル］",
-    "spot": "自由 (La Liberte)［アントワーヌ・ブールデル］",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69212818,
-    "lng": 135.4964691,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005061",
-    "category": "歴史",
-    "name": "国産ビール発祥の地",
-    "spot": "国産ビール発祥の地",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69609418,
-    "lng": 135.4986221,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005062",
-    "category": "歴史",
-    "name": "ラジオ塔",
-    "spot": "ラジオ塔",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69178287,
-    "lng": 135.5106365,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005063",
-    "category": "その他",
-    "name": "堂島薬師堂",
-    "spot": "堂島薬師堂",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69707999,
-    "lng": 135.4969464,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005064",
-    "category": "その他",
-    "name": "バラの小径",
-    "spot": "バラの小径",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69382283,
-    "lng": 135.5047912,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005065",
-    "category": "その他",
-    "name": "中之島バラ園",
-    "spot": "中之島バラ園",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69240936,
-    "lng": 135.5078626,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  },
-  {
-    "id": "EV01005066",
-    "category": "その他",
-    "name": "剣先噴水",
-    "spot": "剣先噴水",
-    "description": "ここには説明文が入ります。イベントの概要が記載されていますが、詳細はリンク先（みんまちDROP）で確認していただきます。",
-    "lat": 34.69131386,
-    "lng": 135.5126387,
-    "image": "https://adpf-poc.com/machiapps/userdata/photos/machi/7d793da7-c8f3-40df-af7b-1d5a996d1351_thumbnail.jpeg",
-    "link": "https://drop.machiapps.com/nakanoshima/event/EV00001319/"
-  }
+<div id="map"></div>
+<div class="panel" id="filterPanel"><b>カテゴリ</b><br></div>
+<script>
+const palette = [
+  "#e6194b","#3cb44b","#4363d8","#f58231",
+  "#911eb4","#46f0f0","#f032e6","#bcf60c",
+  "#008080","#9a6324","#808000","#000075"
 ];
 
-    // ===== category → 色 =====
-    const categoryColors = {
-  "その他": "#e6194b",
-  "アート・デザイン": "#3cb44b",
-  "建築": "#4363d8",
-  "歴史": "#f58231"
-};
-
-    // ピンSVG（色を差し替えて data URI で使用）
-    function pinIcon(color) {
-      const svg = `<?xml version="1.0" encoding="UTF-8"?>
-        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
-          <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 22.2 12.5 41 12.5 41S25 22.2 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="${color}" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
-          <circle cx="12.5" cy="12.5" r="5" fill="white" fill-opacity="0.9"/>
-        </svg>`;
-      const url = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-      return L.icon({
-        iconUrl: url,
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34]
-      });
-    }
-
-    const map = L.map('map');
-
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+// JSONファイルを読み込む（spots.jsonと同じディレクトリに置く）
+fetch('spots.json')
+  .then(r => r.json())
+  .then(spots => {
+    const categories = [...new Set(spots.map(s => s.category))];
+    const categoryColors = {};
+    categories.forEach((c, i) => categoryColors[c] = palette[i % palette.length]);
+    const map = L.map("map");
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
+      attribution: '&copy; <a href="https://www.openstreetmap.org/cnst layersByCategory = {};
+    categories.forEach(c => layersByCategory[c] = L.layerGroup().addTo(map));
     const bounds = [];
-
     spots.forEach(s => {
       if (!isFinite(s.lat) || !isFinite(s.lng)) return;
       bounds.push([s.lat, s.lng]);
-
-      const color = categoryColors[s.category] || '#666';
-      const icon = pinIcon(color);
-
-      const title = escapeHtml(s.name || '');
-      const meta = `${escapeHtml(s.category || '')}${s.spot ? ' / ' + escapeHtml(s.spot) : ''}`;
-      const desc = escapeHtml(s.description || '');
-
-      const img = (s.image && String(s.image).startsWith('http'))
-        ? `<img src="${encodeURI(s.image)}" alt="">`
-        : '';
-
-      const link = (s.link && String(s.link).startsWith('http'))
-        ? `<a href="${encodeURI(s.link)}" target="_blank" rel="noopener">詳細を見る →</a>`
-        : '';
-
-      const popupHtml = `
+      const popup = `
         <div class="popup">
-          <strong>${title}</strong>
-          <div class="meta">${meta}</div>
-          ${img}
-          <div class="desc">${desc}</div>
-          ${link}
+          <strong>${escapeHtml(s.name)}</strong>
+          <div class="meta">${escapeHtml(s.category)} / ${escapeHtml(s.spot)}</div>
+          ${s.image ? `<img src="${encodeURI(s.image)}        <div class="desc">${escapeHtml(s.description || "")}</div>
+          ${s.link ? `<a hrefeURI(s.link)}詳細を見る →</a>` : ""}
         </div>
       `;
+      L.marker([s.lat, s.lng], {
+        icon: pinIcon(categoryColors[s.category])
+      })
+      .bindPopup(popup)
+      .addTo(layersByCategory[s.category]);
+    });
+    if (bounds.length) map.fitBounds(bounds, { padding: [20,20] });
 
-      L.marker([s.lat, s.lng], { icon }).addTo(map).bindPopup(popupHtml);
+    // カテゴリフィルタUI
+    const panel = document.getElementById("filterPanel");
+    categories.forEach(cat => {
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.onchange = () => {
+        if (checkbox.checked) {
+          map.addLayer(layersByCategory[cat]);
+        } else {
+          map.removeLayer(layersByCategory[cat]);
+        }
+      };
+      const swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.style.background = categoryColors[cat];
+      label.appendChild(checkbox);
+      label.appendChild(swatch);
+      label.appendChild(document.createTextNode(cat));
+      panel.appendChild(label);
     });
 
-    if (bounds.length) {
-      map.fitBounds(bounds, { padding: [20, 20] });
-    } else {
-      map.setView([35.0, 135.0], 5);
+    function pinIcon(color) {
+      const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+        <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 22.2 12.5 41 12.5 41S25 22.2 25 12.5C25 5.6 19.4 0 12.5 0Z"
+          fill="${color}" stroke="rgba(0,0,0,.3)" stroke-width="1"/>
+        <circle cx="12.5" cy="12.5" r="5" fill="white"/>
+      </svg>`;
+      return L.icon({
+        iconUrl: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+        iconSize: [25,41],
+        iconAnchor: [12,41],
+        popupAnchor: [1,-34]
+      });
     }
-
-    // Legend
-    const legend = L.control({ position: 'bottomright' });
-    legend.onAdd = function() {
-      const div = L.DomUtil.create('div', 'legend');
-      div.innerHTML = '<b>カテゴリ</b>' +
-        Object.keys(categoryColors).sort().map(cat =>
-          `<div class="row"><span class="swatch" style="background:${categoryColors[cat]}"></span>${escapeHtml(cat)}</div>`
-        ).join('');
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      return div;
-    };
-    legend.addTo(map);
-
     function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, m => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-      }[m]));
+      return String(str).replace(/[&<>"']/g, m =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
+      );
     }
-  </script>
+  });
+</script>
 </body>
 </html>
