@@ -65,16 +65,18 @@
     }
     .panel small { color:#666; display:block; margin-top: 8px; line-height: 1.4; }
 
+    /* 吹き出しのスタイル */
+    .popup { min-width: 200px; }
     .popup img {
-      width: 240px;
-      max-width: 100%;
+      width: 100%; /* 親要素の幅に合わせる */
+      max-width: 240px; 
       border-radius: 8px;
       display:block;
-      margin: 6px 0;
+      margin: 8px 0;
     }
     .popup .meta { font-size: 11px; color: #777; margin-top: 2px; }
-    .popup .desc { margin-top: 6px; white-space: pre-wrap; font-size: 13px; }
-    .popup a { display: inline-block; margin-top: 8px; text-decoration: none; color: #0078ff; }
+    .popup .desc { margin-top: 6px; white-space: pre-wrap; font-size: 13px; color: #333; }
+    .popup a { display: inline-block; margin-top: 8px; text-decoration: none; color: #d32f2f; font-weight: bold; }
 
     .legend {
       background: white;
@@ -110,46 +112,51 @@
   </div>
 
   <script>
-// 1) 地図の初期化（初期表示位置などはそのまま）
-const map = L.map('map').setView([35.681, 139.767], 13); 
+    // 1) 地図の初期化
+    const map = L.map('map').setView([35.681, 139.767], 13); 
 
-// 2) 各レイヤーの定義
-const osmStandard = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-});
+    // 2) 各レイヤーの定義
+    const osmStandard = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    });
 
-const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-});
+    const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+    });
 
-// ...（他のレイヤー定義はそのまま）
+    // 不足していた定義を追加
+    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+    });
 
-// 3) デフォルトにするレイヤーを map に追加
-// osmStandard.addTo(map); // ← これをコメントアウトまたは削除
-cartoPositron.addTo(map);    // ← これを追加（これで最初からLightが表示されます）
+    const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+    });
+
+    // 3) デフォルトレイヤーの追加
+    cartoPositron.addTo(map); 
 
     L.control.layers({
-  'CARTO Light': cartoPositron, // 一番上に配置
-  'OSM 標準': osmStandard,
-  'CARTO Voyager': cartoVoyager,
-  'CARTO Dark': cartoDark
-}).addTo(map);
+      'CARTO Light': cartoPositron,
+      'OSM 標準': osmStandard,
+      'CARTO Voyager': cartoVoyager,
+      'CARTO Dark': cartoDark
+    }).addTo(map);
 
     // --- ロジック ---
     const palette = [
-  '#d32f2f', // 王道の赤
-  '#c2185b', // ローズ系
-  '#f44336', // 少し朱色寄り
-  '#880e4f', // 濃い紫赤
-  '#ff5252', // ネオンレッド
-  '#7b1fa2'  // アクセントのワイン
-];
+      '#d32f2f', // 王道の赤
+      '#c2185b', // ローズ系
+      '#f44336', // 少し朱色寄り
+      '#880e4f', // 濃い紫赤
+      '#ff5252', // ネオンレッド
+      '#7b1fa2'  // アクセントのワイン
+    ];
     let categoryColors = {}, categoryLayers = {}, categoryState = {};
 
     const categoryListEl = document.getElementById('categoryList');
     const searchBoxEl = document.getElementById('searchBox');
 
-    // 凡例の設定
     const legend = L.control({ position: 'bottomright' });
     legend.onAdd = function() {
       const div = L.DomUtil.create('div', 'legend');
@@ -214,7 +221,6 @@ cartoPositron.addTo(map);    // ← これを追加（これで最初からLight
       }
     }
 
-    // ボタンイベント
     document.getElementById('btnAllOn').onclick = () => {
       Object.keys(categoryState).forEach(c => { categoryState[c] = true; map.addLayer(categoryLayers[c]); });
       renderCategoryList();
@@ -230,7 +236,6 @@ cartoPositron.addTo(map);    // ← これを追加（これで最初からLight
     };
     searchBoxEl.oninput = () => renderCategoryList();
 
-    // JSON 読み込み
     fetch('./spots.json')
       .then(r => r.json())
       .then(spots => {
@@ -244,16 +249,19 @@ cartoPositron.addTo(map);    // ← これを追加（これで最初からLight
         spots.forEach(s => {
           if (!isFinite(s.lat) || !isFinite(s.lng)) return;
           const cat = s.category || '未分類';
+          // 吹き出しの幅設定（maxWidth）を追加
           L.marker([s.lat, s.lng], { icon: pinIcon(categoryColors[cat]) })
-            .bindPopup(buildPopup(s))
+            .bindPopup(buildPopup(s), { maxWidth: 260 })
             .addTo(categoryLayers[cat]);
         });
 
         renderLegend();
         renderCategoryList();
-        document.getElementById('btnFit').click();
+        
+        // データ読み込み直後に範囲を合わせる
+        setTimeout(() => document.getElementById('btnFit').click(), 100);
       })
-      .catch(err => alert("データの読み込みに失敗しました。サーバー上で実行してください。"));
+      .catch(err => console.error("Error:", err));
   </script>
 </body>
 </html>
