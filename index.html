@@ -110,33 +110,30 @@
   </div>
 
   <script>
-    const map = L.map('map').setView([35.681, 139.767], 13); // 初期位置
+// 1) 地図の初期化（初期表示位置などはそのまま）
+const map = L.map('map').setView([35.681, 139.767], 13); 
 
-    // ベースマップの定義 (Attributionの<a>タグを修正)
-    const osmStandard = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    });
+// 2) 各レイヤーの定義
+const osmStandard = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+});
 
-    const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-    });
+const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+});
 
-    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-    });
+// ...（他のレイヤー定義はそのまま）
 
-    const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-    });
-
-    osmStandard.addTo(map);
+// 3) デフォルトにするレイヤーを map に追加
+// osmStandard.addTo(map); // ← これをコメントアウトまたは削除
+cartoPositron.addTo(map);    // ← これを追加（これで最初からLightが表示されます）
 
     L.control.layers({
-      'OSM 標準': osmStandard,
-      'CARTO Light': cartoPositron,
-      'CARTO Voyager': cartoVoyager,
-      'CARTO Dark': cartoDark
-    }).addTo(map);
+  'CARTO Light': cartoPositron, // 一番上に配置
+  'OSM 標準': osmStandard,
+  'CARTO Voyager': cartoVoyager,
+  'CARTO Dark': cartoDark
+}).addTo(map);
 
     // --- ロジック ---
     const palette = [
